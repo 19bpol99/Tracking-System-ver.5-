@@ -7,6 +7,7 @@
 #include <SoftwareSerial.h>
 
 int state = 0;
+int butstate = 0;
 const int button = 8;
 boolean statusGPS = false;
 
@@ -28,19 +29,25 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  SIM900A.listen();
+  
+  if (state == 1){
+    SIM900A.print("AT+CNMI=2,2,0,0,0,0");
+    delay(1000);
+    state = 0;
+  }
+  
   while (Serial.available() > 0)
     if (gps.encode(Serial.read()))
       getDataGPS();
   
-  SIM900A.listen();
-  
   //Button trigger on the device to send the gps location
-  if (digitalRead(button) == HIGH && state == 0){
+  if (digitalRead(button) == HIGH && butstate == 0){
     //SIM900A.listen();
     sendSMS();
   }
-  if (digitalRead(button) == HIGH){
-    state = 0;
+  if (digitalRead(button) == LOW){
+    butstate = 0;
   }
   delay(100);
 
@@ -49,13 +56,21 @@ void loop() {
   if (SIM900A.available() > 0){
     String trigger = SIM900A.readString();
     trigger.trim();
-    if (trigger.indexOf("hey") >= 0){
+    if (trigger.indexOf("hey") >= 0){ //If trigger message "hey" is available 
+      //send the location
       sendSMS();
     }
     delay(100);
   }
 
-  //Call trigger to send 
+  //Call trigger to send location
+  if (SIM900A.available() > 0){
+    SIM900A.println("ATA"); //Accepts the call
+    delay(10000); //Ring for 10 seconds
+    SIM900A.println("ATH"); //Hung-up the call
+    //send reply
+    sendSMS();
+  }
 }
 
 void getDataGPS(){
