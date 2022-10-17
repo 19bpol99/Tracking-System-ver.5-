@@ -32,7 +32,11 @@ void loop() {
     if (gps.encode(Serial.read()))
       getDataGPS();
   
+  SIM900A.listen();
+  
+  //Button trigger on the device to send the gps location
   if (digitalRead(button) == HIGH && state == 0){
+    //SIM900A.listen();
     sendSMS();
   }
   if (digitalRead(button) == HIGH){
@@ -40,6 +44,18 @@ void loop() {
   }
   delay(100);
 
+  //SMS trigger to reply the gps location
+  //SIM900A.listen();
+  if (SIM900A.available() > 0){
+    String trigger = SIM900A.readString();
+    trigger.trim();
+    if (trigger.indexOf("hey") >= 0){
+      sendSMS();
+    }
+    delay(100);
+  }
+
+  //Call trigger to send 
 }
 
 void getDataGPS(){
@@ -66,9 +82,11 @@ void getDataGPS(){
 }
 
 void sendSMS (){
+  SIM900A.print("\r");
+  delay(1000);
   SIM900A.print("AT+CMGF=1\r"); //Set GSM module to sending mode
   delay(1000);
-  SIM900A.print("AT+CMGS=\"+63XXXXXXXXXX\"\r"); //Change 10-Xs by the recipient's 10-digit number after 0
+  SIM900A.print("AT+CMGS=\"+63XXXXXXXXXX\"\r"); //Change 10-Xs by the recipient's 10-digit number after 0 (if you're in the other country, just change the whole number format to fit in your country code)
   delay(1000);
   //The SMS format to be sent.
   SIM900A.print("Update: Device current location is " + gpsLatitude + ", " + gpsLongitude + ".");
